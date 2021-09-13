@@ -8,3 +8,4 @@ Operations with the database available:
 	- showalldata
 	- showspecdata someInteger/somePattern
 	- adddata nameOfAnime ReleaseDate(**.**.****) NumOfEpisodes(int) Genre
+	- showspecdata someInteger/somePattern 

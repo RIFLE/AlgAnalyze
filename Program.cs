@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
 namespace AlgAnalyze
@@ -52,6 +53,19 @@ namespace AlgAnalyze
                 return _containerStr;
             }
         }
+        static bool CheckStringForPatterns(string original, string[] patterns)
+        {
+            bool _state = false;
+            foreach(string pattern in patterns)
+            {
+                if(original.Contains(pattern))
+                {
+                    _state = true;
+                    break;
+                }
+            }
+            return _state;
+        }
         static void GetWordsList(ref string buffer, ref List<string> wordsList, bool state = false)
         {
             string _temp = "";
@@ -96,7 +110,6 @@ namespace AlgAnalyze
             return;
         }
         
-
         static void Main(string[] args)
         {
             string fileName = @"./Data_Base";
@@ -106,12 +119,12 @@ namespace AlgAnalyze
                 File.WriteAllText(fileName, "Anime Title\t\tDate of release\t\tNum of episodes\t\tGenre\n");
                 Console.WriteLine("Table created!");
             }
-
             string commandStr = "";
             List<string> commandList = new List<string>();
             string _charArr = "[]{}|/*+^;%$#@!()\\";
             bool _charCheck;
             int argsLength = 0;
+            bool _state = false;
             List<char> charsToRemove = new List<char>() {'{', '}'};
             while(true)
             {
@@ -142,19 +155,6 @@ namespace AlgAnalyze
                 while(!_charCheck);
                 
                 string _temp = "";
-                /*for(int i=0; i<=commandStr.Length; i++)
-                {
-                    if(i != commandStr.Length && commandStr[i] != ' ')
-                    {
-                        _temp += commandStr[i];
-                    }
-                    else
-                    {
-                        commandList.Add(new string(_temp));
-                        _temp = "";
-                    }
-                }
-                string[] commandInArgs = commandList.ToArray();*/
                 GetWordsList(ref commandStr, ref commandList);
                 string[] commandInArgs = commandList.ToArray();
                 argsLength = commandInArgs.Length;
@@ -169,21 +169,29 @@ namespace AlgAnalyze
                                           + "- adddata <nameOfAnime> ReleaseDate<**.**.****> NumOfEpisodes<int> <Genre>\n"
                                           + "- changespecdata <nameOfAnime> ?<name:someName> ?<release:date> ?<numofep:int> ?<genre:str>\n"
                                           + "- findspecdata <field:data> ?<...> ?<...> ?<...>\n"
-                                          + "- deldata <int>\n"
+                                          + "- deldata <pattern1> <pattern2> <pattern3> ...\n"
                                           + "System commands:\n- help\n- clear\n- quit");
                         break;
                     }
                     
                     case "showalldata": //Show Database
 
-                        string[] fileData = File.ReadAllLines(@fileName);
-                        foreach(string _data in fileData)
+                        using(var sr = new StreamReader(fileName))
                         {
-                            Console.WriteLine(_data.Filter(charsToRemove));
+                            string dataLine;
+                            bool _uselessIndicator = true;          //How ironic, as usefull as my pathetic life
+                            int _count = 0;
+                            while((dataLine = sr.ReadLine()) != null)
+                            {
+                                if(!_uselessIndicator) Console.Write(_count.ToString() + " ");   //This is the most worst bad terrible example to show
+                                Console.WriteLine(dataLine.Filter(charsToRemove));               //how a simple bool dataField can be a horrible
+                                if(_uselessIndicator) _uselessIndicator = !_uselessIndicator;    //nightmare cutting down the performance in approx. 99.9%
+                                _count++;                                                        //to achive a questionable result.
+                            }                                                                    //Please, kill me. I'm so ****** up
                         }
                         break;
 
-                    case "showspecdata": //Show specified data (with number?)
+                    case "showspecdata":    //Show specified data (with number?)
 
                         if(argsLength > 2)
                         {
@@ -195,8 +203,8 @@ namespace AlgAnalyze
                             Console.WriteLine("No args for command.\nType: 'help showspecdata' for additional info.");
                             break;
                         }
-                        Regex commandTemplate = new Regex(@"showspecdata [1-9][0-9]?[0-9]?");
-                        
+
+                        Regex commandTemplate = new Regex(@"showspecdata [1-9][0-9]?[0-9]?");                        
                         if(commandTemplate.IsMatch(commandStr))
                         {
                             Console.WriteLine(GetLine(fileName,Int32.Parse(commandInArgs[1])).Filter(charsToRemove));
@@ -222,15 +230,10 @@ namespace AlgAnalyze
                         
                         Regex dataTemplate_1 = new Regex(@"adddata \'..*\' \'(0[1-9]|[1-2][0-9]|3[0-1])\.(0[1-9]|1[0-2])\.(19[8-9][0-9]|20[0-1][0-9]|202[0-2])\' \'[1-9]{1,4}?\' \'..*\'"); 
                         Regex dataTemplate_2 = new Regex(@"adddata ..* (0[1-9]|[1-2][0-9]|3[0-1])\.(0[1-9]|1[0-2])\.(19[8-9][0-9]|20[0-1][0-9]|202[0-2]) [1-9]{1,4}? ..*"); 
-                        bool _state = false;
+                        _state = false;
                         if(dataTemplate_1.IsMatch(commandStr)) _state = true;
                         if(_state || dataTemplate_2.IsMatch(commandStr))
                         {
-                            //commandStr = commandStr.Filter('\'');
-                            
-                            /*for(int i=1; i<5; i++)
-                                commandInArgs[i] = commandInArgs[i].Filter('\'');*/
-
                             commandList.Clear();
                             GetWordsList(ref commandStr, ref commandList, _state);
                             commandInArgs = commandList.ToArray();
@@ -243,9 +246,6 @@ namespace AlgAnalyze
                                    + "{numofep:" + commandInArgs[3] + "} "
                                    + "{genre:"   + commandInArgs[4] + "}";
 
-                            //argsLength = commandList.ToArray();
-                            //Console.WriteLine(commandStr);
-                            //_temp = 
                             using (StreamWriter sw = File.AppendText(fileName)) sw.WriteLine(_temp);
                         }
                         else
@@ -253,19 +253,45 @@ namespace AlgAnalyze
                             Console.WriteLine("Incorrect template.\nType: 'help adddata' for additional info.");
                             break;
                         }
-                        
                         break;
 
                     case "changespecdata":  //Change specified field in the database
                                             //()
                         break;
 
-                    case "findspecdata":    //Find via specified field (regex usage)
-                                            //()
+                    case "findspecdata":    //Find via specified field
+                                            //()     
                         break;
 
                     case "deldata":         //Delete a line in a database (use an integer)
                         
+                        Regex delTemplate_1 = new Regex(@"deldata \'..*\'"); 
+                        Regex delTemplate_2 = new Regex(@"deldata ..*");
+
+                        _state = false;
+                        if(delTemplate_1.IsMatch(commandStr)) _state = true;
+                        if(_state || delTemplate_2.IsMatch(commandStr))
+                        {
+                            commandList.Clear();
+                            GetWordsList(ref commandStr, ref commandList, _state);
+                            commandInArgs = commandList.ToArray();
+                            argsLength = commandInArgs.Length;
+
+                            if(argsLength < 2){Console.WriteLine("Invalid quantity of arguments.\nType: 'help deldata' for additional info."); break;}
+                            var tempFile = Path.GetTempFileName();
+                            var linesToKeep = File.ReadLines(fileName).Where(someLine => !CheckStringForPatterns(someLine,commandInArgs));
+                            
+                            File.WriteAllLines(tempFile, linesToKeep);
+                        
+                            if(new FileInfo(tempFile).Length == new FileInfo(fileName).Length)
+                            {
+                                Console.WriteLine("Nothing found using the given pattern nor was deleted.");
+                                File.Delete(tempFile);
+                                break;
+                            }
+                            File.Delete(fileName);
+                            File.Move(tempFile,fileName);
+                        }
                         break;
                     
                     case "clear":
@@ -276,7 +302,7 @@ namespace AlgAnalyze
                         return;
 
                     default:
-                        Console.WriteLine("Incorrect command: " + commandInArgs[0]);
+                        Console.WriteLine("Incorrect command: " + commandInArgs[0] + "\nType 'menu' for additional info.");
                         break;
                 }
             }

@@ -6,10 +6,15 @@ namespace AlgAnalyze
 {
     public static class Extensions
     {
+        public static string Filter(this string str, char charToRemove)
+        {
+            return String.Concat(str.Split(charToRemove));
+        }
         public static string Filter(this string str, List<char> charsToRemove)
         {
             return String.Concat(str.Split(charsToRemove.ToArray()));
         }
+        
     }
     class Program
     {
@@ -47,6 +52,51 @@ namespace AlgAnalyze
                 return _containerStr;
             }
         }
+        static void GetWordsList(ref string buffer, ref List<string> wordsList, bool state = false)
+        {
+            string _temp = "";
+            if(state)
+            {
+                for(int i=0; i<buffer.Length; i++)
+                {
+                    if(buffer[i] == ' ') break;
+                    else _temp += buffer[i];
+                }
+                wordsList.Add(new string(_temp));
+                _temp = "";
+                for(int i=0; i<buffer.Length; i++)
+                {
+                    if(buffer[i] == '\'')
+                    {
+                        i++;
+                        for(; i<=buffer.Length; i++)
+                        {
+                            if(buffer[i] == '\'') {wordsList.Add(new string(_temp)); break;}
+                            else _temp += buffer[i];
+                        }
+                        _temp = "";
+                    }
+                }
+            }
+            else
+            {
+                for(int i=0; i<=buffer.Length; i++)
+                {
+                    if(i != buffer.Length && buffer[i] != ' ')
+                    {
+                        _temp += buffer[i];
+                    }
+                    else
+                    {
+                        wordsList.Add(new string(_temp));
+                        _temp = "";
+                    }
+                }
+            }
+            return;
+        }
+        
+
         static void Main(string[] args)
         {
             string fileName = @"./Data_Base";
@@ -92,7 +142,7 @@ namespace AlgAnalyze
                 while(!_charCheck);
                 
                 string _temp = "";
-                for(int i=0; i<=commandStr.Length; i++)
+                /*for(int i=0; i<=commandStr.Length; i++)
                 {
                     if(i != commandStr.Length && commandStr[i] != ' ')
                     {
@@ -104,6 +154,8 @@ namespace AlgAnalyze
                         _temp = "";
                     }
                 }
+                string[] commandInArgs = commandList.ToArray();*/
+                GetWordsList(ref commandStr, ref commandList);
                 string[] commandInArgs = commandList.ToArray();
                 argsLength = commandInArgs.Length;
 
@@ -140,7 +192,7 @@ namespace AlgAnalyze
                         }
                         else if(argsLength < 2)
                         {
-                            Console.WriteLine("No args for command.\nType: help showspecdata");
+                            Console.WriteLine("No args for command.\nType: 'help showspecdata' for additional info.");
                             break;
                         }
                         Regex commandTemplate = new Regex(@"showspecdata [1-9][0-9]?[0-9]?");
@@ -165,7 +217,43 @@ namespace AlgAnalyze
 
                     case "adddata":         //Add a line to a database
                                             //(format: adddata <field1:>)
+                        
+                            //adddata <nameOfAnime> ReleaseDate<**.**.****> NumOfEpisodes<int> <Genre>\n"      
+                        
+                        Regex dataTemplate_1 = new Regex(@"adddata \'..*\' \'(0[1-9]|[1-2][0-9]|3[0-1])\.(0[1-9]|1[0-2])\.(19[8-9][0-9]|20[0-1][0-9]|202[0-2])\' \'[1-9]{1,4}?\' \'..*\'"); 
+                        Regex dataTemplate_2 = new Regex(@"adddata ..* (0[1-9]|[1-2][0-9]|3[0-1])\.(0[1-9]|1[0-2])\.(19[8-9][0-9]|20[0-1][0-9]|202[0-2]) [1-9]{1,4}? ..*"); 
+                        bool _state = false;
+                        if(dataTemplate_1.IsMatch(commandStr)) _state = true;
+                        if(_state || dataTemplate_2.IsMatch(commandStr))
+                        {
+                            //commandStr = commandStr.Filter('\'');
+                            
+                            /*for(int i=1; i<5; i++)
+                                commandInArgs[i] = commandInArgs[i].Filter('\'');*/
 
+                            commandList.Clear();
+                            GetWordsList(ref commandStr, ref commandList, _state);
+                            commandInArgs = commandList.ToArray();
+                            
+                            argsLength = commandInArgs.Length;
+                            if(argsLength != 5) {Console.WriteLine("Incorrect arguments quantity: " + (argsLength-1) + " instead of 4\nType: 'help adddata' for additional info."); break;};
+                            
+                            _temp =   "{name:"    + commandInArgs[1] + "} "
+                                   + "{release:" + commandInArgs[2] + "} "
+                                   + "{numofep:" + commandInArgs[3] + "} "
+                                   + "{genre:"   + commandInArgs[4] + "}";
+
+                            //argsLength = commandList.ToArray();
+                            //Console.WriteLine(commandStr);
+                            //_temp = 
+                            using (StreamWriter sw = File.AppendText(fileName)) sw.WriteLine(_temp);
+                        }
+                        else
+                        {
+                            Console.WriteLine("Incorrect template.\nType: 'help adddata' for additional info.");
+                            break;
+                        }
+                        
                         break;
 
                     case "changespecdata":  //Change specified field in the database

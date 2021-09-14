@@ -167,9 +167,9 @@ namespace AlgAnalyze
                                           + "- showalldata\n" 
                                           + "- showspecdata <int>\n"
                                           + "- adddata <nameOfAnime> ReleaseDate<**.**.****> NumOfEpisodes<int> <Genre>\n"
-                                          + "- changespecdata <nameOfAnime> ?<name:someName> ?<release:date> ?<numofep:int> ?<genre:str>\n"
-                                          + "- findspecdata <field:data> ?<...> ?<...> ?<...>\n"
-                                          + "- deldata <pattern1> <pattern2> <pattern3> ...\n"
+                                          + "- changespecdata <nameOfAnime> <name:someName>? <release:date>? <numofep:int>? <genre:str>?\n"
+                                          + "- findspecdata <pattern1> <pattern2>? <...>? <...>?\n"
+                                          + "- deldata <pattern1> <pattern2>? <...>? <...>?\n"
                                           + "System commands:\n- help\n- clear\n- quit");
                         break;
                     }
@@ -191,7 +191,7 @@ namespace AlgAnalyze
                         }
                         break;
 
-                    case "showspecdata":    //Show specified data (with number?)
+                    case "showspecdata":    //Show specified data (with number)
 
                         if(argsLength > 2)
                         {
@@ -211,6 +211,11 @@ namespace AlgAnalyze
                         }
                         else
                         {
+                            Console.WriteLine("Incorrect command (bad syntax).\nType: 'help showspecdata' for additional info.");
+                        }
+        /*
+                        else
+                        {
                             _temp = "";
                             if((_temp = GetLinesWithPattern(fileName,commandInArgs[1])) == "")
                             {
@@ -221,6 +226,7 @@ namespace AlgAnalyze
                                 Console.Write(_temp.Filter(charsToRemove));
                             }
                         }
+        */
                         break;
 
                     case "adddata":         //Add a line to a database
@@ -228,8 +234,8 @@ namespace AlgAnalyze
                         
                             //adddata <nameOfAnime> ReleaseDate<**.**.****> NumOfEpisodes<int> <Genre>\n"      
                         
-                        Regex dataTemplate_1 = new Regex(@"adddata \'..*\' \'(0[1-9]|[1-2][0-9]|3[0-1])\.(0[1-9]|1[0-2])\.(19[8-9][0-9]|20[0-1][0-9]|202[0-2])\' \'[1-9]{1,4}?\' \'..*\'"); 
-                        Regex dataTemplate_2 = new Regex(@"adddata ..* (0[1-9]|[1-2][0-9]|3[0-1])\.(0[1-9]|1[0-2])\.(19[8-9][0-9]|20[0-1][0-9]|202[0-2]) [1-9]{1,4}? ..*"); 
+                        Regex dataTemplate_1 = new Regex(@"^adddata \'..*\' \'(0[1-9]|[1-2][0-9]|3[0-1])\.(0[1-9]|1[0-2])\.(19[8-9][0-9]|20[0-1][0-9]|202[0-2])\' \'[1-9]{1,4}?\' \'..*\'"); 
+                        Regex dataTemplate_2 = new Regex(@"^adddata ..* (0[1-9]|[1-2][0-9]|3[0-1])\.(0[1-9]|1[0-2])\.(19[8-9][0-9]|20[0-1][0-9]|202[0-2]) [1-9]{1,4}? ..*"); 
                         _state = false;
                         if(dataTemplate_1.IsMatch(commandStr)) _state = true;
                         if(_state || dataTemplate_2.IsMatch(commandStr))
@@ -250,17 +256,48 @@ namespace AlgAnalyze
                         }
                         else
                         {
-                            Console.WriteLine("Incorrect template.\nType: 'help adddata' for additional info.");
-                            break;
+                            Console.WriteLine("Incorrect command (bad syntax).\nType: 'help adddata' for additional info.");
                         }
                         break;
 
                     case "changespecdata":  //Change specified field in the database
                                             //()
+                        Console.WriteLine("System: Command is still under development.");
                         break;
 
                     case "findspecdata":    //Find via specified field
-                                            //()     
+                                            //()
+
+                        Regex findTemplate_1 = new Regex(@"^findspecdata \'..*\'");    
+                        Regex findTemplate_2 = new Regex(@"^findspecdata ..*");             
+                        _state = false;
+                        if(findTemplate_1.IsMatch(commandStr)) _state = true;
+                        if(_state || findTemplate_2.IsMatch(commandStr))
+                        {
+                            commandList.Clear();
+                            GetWordsList(ref commandStr, ref commandList, _state);
+                            commandInArgs = commandList.ToArray();
+                            argsLength = commandInArgs.Length;
+
+                            if(argsLength < 2){Console.WriteLine("Invalid quantity of arguments.\nType: 'help findspecdata' for additional info."); break;}
+                            
+                            var linesWithMatches = File.ReadLines(fileName).Where(someLine => CheckStringForPatterns(someLine,commandInArgs));
+                            int _strCount = linesWithMatches.Count();
+                            if(_strCount == 0)
+                            {
+                                Console.WriteLine("No matches were found.");
+                            }
+                            else
+                            {
+                                Console.WriteLine("Found " + _strCount.ToString() + " matches:");
+                                foreach(string line in linesWithMatches)
+                                    Console.WriteLine(line);
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("Incorrect command (bad syntax).\nType: 'help findspecdata' for additional info.");
+                        }
                         break;
 
                     case "deldata":         //Delete a line in a database (use an integer)
@@ -291,6 +328,10 @@ namespace AlgAnalyze
                             }
                             File.Delete(fileName);
                             File.Move(tempFile,fileName);
+                        }
+                        else
+                        {
+                            Console.WriteLine("Incorrect command (bad syntax).\nType: 'help deldata' for additional info.");
                         }
                         break;
                     
